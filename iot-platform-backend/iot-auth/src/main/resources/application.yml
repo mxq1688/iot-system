@@ -1,0 +1,86 @@
+server:
+  port: 8001
+
+spring:
+  application:
+    name: iot-auth
+  profiles:
+    active: dev
+  
+  # H2自动执行SQL脚本
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
+      data-locations: classpath:data.sql
+  
+  # 数据源配置
+  datasource:
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:mem:iot_platform;MODE=MySQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password:
+
+  # Redis配置（可选）
+#  redis:
+#    host: localhost
+#    port: 6379
+#    password: redis123456
+#    database: 0
+#    timeout: 5000ms
+#    lettuce:
+#      pool:
+#        max-active: 200
+#        max-wait: -1ms
+#        max-idle: 10
+#        min-idle: 5
+
+  # Nacos配置（可选）
+#  cloud:
+#    nacos:
+#      discovery:
+#        server-addr: localhost:8848
+#        namespace: public
+#        group: DEFAULT_GROUP
+#      config:
+#        server-addr: localhost:8848
+#        file-extension: yml
+#        namespace: public
+#        group: DEFAULT_GROUP
+
+# MyBatis-Plus配置
+mybatis-plus:
+  # Mapper文件位置
+  mapper-locations: classpath*:/mapper/**/*.xml
+  # 实体类扫描包路径
+  type-aliases-package: com.iot.auth.domain
+  configuration:
+    # 驼峰转下划线
+    map-underscore-to-camel-case: true
+    # 开启日志
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      # 主键类型（雪花算法）
+      id-type: ASSIGN_ID
+      # 逻辑删除字段
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+# API文档配置（使用手动OpenAPI端点）
+# 访问: /swagger-ui.html (静态HTML页面)
+# API文档: /v3/api-docs (JSON格式)
+
+# 日志配置
+logging:
+  level:
+    com.iot: debug
+    org.springframework: info
+  pattern:
+    console: '%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n'
+    file: '%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n'
+  file:
+    name: logs/iot-auth.log
+    max-size: 10MB
+    max-history: 30

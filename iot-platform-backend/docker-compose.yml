@@ -1,0 +1,136 @@
+version: '3.8'
+
+services:
+  # MySQL数据库
+  mysql:
+    image: mysql:8.0
+    container_name: iot-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root123456
+      MYSQL_DATABASE: iot_platform
+      TZ: Asia/Shanghai
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./data/mysql:/var/lib/mysql
+      - ./scripts/sql:/docker-entrypoint-initdb.d
+    command: --default-authentication-plugin=mysql_native_password
+    networks:
+      - iot-network
+
+  # Redis缓存
+  redis:
+    image: redis:7-alpine
+    container_name: iot-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./data/redis:/data
+    command: redis-server --appendonly yes --requirepass redis123456
+    networks:
+      - iot-network
+
+  # RabbitMQ消息队列
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: iot-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin123456
+    ports:
+      - "5672:5672"   # AMQP端口
+      - "15672:15672" # 管理界面
+    volumes:
+      - ./data/rabbitmq:/var/lib/rabbitmq
+    networks:
+      - iot-network
+
+  # EMQX MQTT Broker
+  emqx:
+    image: emqx/emqx:5.3.2
+    container_name: iot-emqx
+    environment:
+      EMQX_NAME: emqx
+      EMQX_HOST: 127.0.0.1
+    ports:
+      - "1883:1883"   # MQTT端口
+      - "8883:8883"   # MQTT over TLS
+      - "8083:8083"   # WebSocket
+      - "8084:8084"   # WebSocket over TLS
+      - "18083:18083" # Dashboard (admin/public)
+    volumes:
+      - ./data/emqx/data:/opt/emqx/data
+      - ./data/emqx/log:/opt/emqx/log
+    networks:
+      - iot-network
+
+  # InfluxDB时序数据库
+  influxdb:
+    image: influxdb:2.7-alpine
+    container_name: iot-influxdb
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: admin
+      DOCKER_INFLUXDB_INIT_PASSWORD: admin123456
+      DOCKER_INFLUXDB_INIT_ORG: iot-platform
+      DOCKER_INFLUXDB_INIT_BUCKET: device-data
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: influxdb-token-123456
+    ports:
+      - "8086:8086"
+    volumes:
+      - ./data/influxdb:/var/lib/influxdb2
+    networks:
+      - iot-network
+
+  # MongoDB日志数据库
+  mongodb:
+    image: mongo:6.0
+    container_name: iot-mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin123456
+    ports:
+      - "27017:27017"
+    volumes:
+      - ./data/mongodb:/data/db
+    networks:
+      - iot-network
+
+  # MinIO对象存储
+  minio:
+    image: minio/minio:latest
+    container_name: iot-minio
+    environment:
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: admin123456
+    ports:
+      - "9000:9000"   # API端口
+      - "9001:9001"   # Console端口
+    volumes:
+      - ./data/minio:/data
+    command: server /data --console-address ":9001"
+    networks:
+      - iot-network
+
+  # Nacos配置中心
+  nacos:
+    image: nacos/nacos-server:v2.3.0-slim
+    container_name: iot-nacos
+    environment:
+      MODE: standalone
+      SPRING_DATASOURCE_PLATFORM: mysql
+      MYSQL_SERVICE_HOST: mysql
+      MYSQL_SERVICE_DB_NAME: nacos_config
+      MYSQL_SERVICE_USER: root
+      MYSQL_SERVICE_PASSWORD: root123456
+    ports:
+      - "8848:8848"
+      - "9848:9848"
+    depends_on:
+      - mysql
+    networks:
+      - iot-network
+
+networks:
+  iot-network:
+    driver: bridge
