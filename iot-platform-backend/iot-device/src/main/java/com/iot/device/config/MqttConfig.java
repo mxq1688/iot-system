@@ -72,8 +72,10 @@ public class MqttConfig {
         MqttPahoMessageDrivenChannelAdapter adapter = new MqttPahoMessageDrivenChannelAdapter(
                 clientId + "_inbound",
                 mqttClientFactory(),
-                "device/+/data",    // 设备数据主题
-                "device/+/status"   // 设备状态主题
+                "device/+/data",      // 设备数据主题
+                "device/+/status",    // 设备状态主题
+                "iot/device/+/control",  // Home Assistant控制命令 (新增)
+                "iot/scene/+/trigger"    // Home Assistant场景触发 (新增)
         );
         adapter.setCompletionTimeout(5000);
         adapter.setConverter(new DefaultPahoMessageConverter());

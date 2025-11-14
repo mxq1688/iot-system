@@ -1,0 +1,409 @@
+# Home Assistant 配置示例
+# 复制此文件内容到你的 Home Assistant configuration.yaml 中
+
+# =============================================================================
+# MQTT 连接配置
+# =============================================================================
+mqtt:
+  broker: 192.168.1.100  # 替换为你的IoT平台服务器IP
+  port: 1883
+  username: admin         # EMQX用户名
+  password: public        # EMQX密码
+  discovery: true         # 启用MQTT自动发现
+  discovery_prefix: homeassistant
+  birth_message:
+    topic: 'homeassistant/status'
+    payload: 'online'
+  will_message:
+    topic: 'homeassistant/status'
+    payload: 'offline'
+
+# =============================================================================
+# 传感器配置 (Sensors)
+# =============================================================================
+sensor:
+  # 温度传感器示例
+  - platform: mqtt
+    name: "客厅温度传感器"
+    state_topic: "iot/device/temp-sensor-001/data"
+    value_template: "{{ value_json.temperature }}"
+    unit_of_measurement: "°C"
+    device_class: temperature
+    unique_id: "iot_temp_sensor_001"
+    icon: mdi:thermometer
+
+  # 湿度传感器示例
+  - platform: mqtt
+    name: "客厅湿度传感器"
+    state_topic: "iot/device/temp-sensor-001/data"
+    value_template: "{{ value_json.humidity }}"
+    unit_of_measurement: "%"
+    device_class: humidity
+    unique_id: "iot_humidity_sensor_001"
+    icon: mdi:water-percent
+
+  # PM2.5传感器示例
+  - platform: mqtt
+    name: "室内PM2.5"
+    state_topic: "iot/device/air-quality-001/data"
+    value_template: "{{ value_json.pm25 }}"
+    unit_of_measurement: "μg/m³"
+    device_class: pm25
+    unique_id: "iot_pm25_sensor_001"
+    icon: mdi:air-filter
+
+  # 电量传感器示例
+  - platform: mqtt
+    name: "智能插座电量"
+    state_topic: "iot/device/smart-plug-001/data"
+    value_template: "{{ value_json.power }}"
+    unit_of_measurement: "W"
+    device_class: power
+    unique_id: "iot_power_sensor_001"
+    icon: mdi:flash
+
+# =============================================================================
+# 二值传感器配置 (Binary Sensors)
+# =============================================================================
+binary_sensor:
+  # 设备在线状态
+  - platform: mqtt
+    name: "温度传感器在线状态"
+    state_topic: "iot/device/temp-sensor-001/status"
+    value_template: "{{ 'ON' if value_json.status == 'online' else 'OFF' }}"
+    device_class: connectivity
+    unique_id: "iot_temp_sensor_001_status"
+
+  # 门窗传感器
+  - platform: mqtt
+    name: "前门状态"
+    state_topic: "iot/device/door-sensor-001/data"
+    value_template: "{{ 'ON' if value_json.opened else 'OFF' }}"
+    device_class: door
+    unique_id: "iot_door_sensor_001"
+    payload_on: "ON"
+    payload_off: "OFF"
+
+  # 人体传感器
+  - platform: mqtt
+    name: "客厅人体感应"
+    state_topic: "iot/device/motion-sensor-001/data"
+    value_template: "{{ 'ON' if value_json.motion else 'OFF' }}"
+    device_class: motion
+    unique_id: "iot_motion_sensor_001"
+    off_delay: 60  # 60秒无人后自动关闭
+
+# =============================================================================
+# 开关配置 (Switches)
+# =============================================================================
+switch:
+  # 智能插座开关
+  - platform: mqtt
+    name: "客厅智能插座"
+    state_topic: "iot/device/smart-plug-001/status"
+    command_topic: "iot/device/smart-plug-001/control"
+    value_template: "{{ value_json.power }}"
+    payload_on: '{"action":"switch","params":{"power":"on"},"requestId":"{{now().timestamp()}}"}'
+    payload_off: '{"action":"switch","params":{"power":"off"},"requestId":"{{now().timestamp()}}"}'
+    state_on: "on"
+    state_off: "off"
+    optimistic: false
+    qos: 1
+    retain: false
+    unique_id: "iot_smart_plug_001"
+    icon: mdi:power-socket
+
+  # 风扇开关
+  - platform: mqtt
+    name: "卧室风扇"
+    state_topic: "iot/device/fan-001/status"
+    command_topic: "iot/device/fan-001/control"
+    value_template: "{{ value_json.power }}"
+    payload_on: '{"action":"switch","params":{"power":"on"},"requestId":"{{now().timestamp()}}"}'
+    payload_off: '{"action":"switch","params":{"power":"off"},"requestId":"{{now().timestamp()}}"}'
+    state_on: "on"
+    state_off: "off"
+    unique_id: "iot_fan_001"
+    icon: mdi:fan
+
+# =============================================================================
+# 灯光配置 (Lights)
+# =============================================================================
+light:
+  # 可调光灯泡
+  - platform: mqtt
+    name: "客厅吸顶灯"
+    state_topic: "iot/device/light-001/status"
+    command_topic: "iot/device/light-001/control"
+    brightness_state_topic: "iot/device/light-001/data"
+    brightness_command_topic: "iot/device/light-001/control"
+    brightness_scale: 100
+    brightness_value_template: "{{ value_json.brightness }}"
+    payload_on: '{"action":"switch","params":{"power":"on"},"requestId":"{{now().timestamp()}}"}'
+    payload_off: '{"action":"switch","params":{"power":"off"},"requestId":"{{now().timestamp()}}"}'
+    set_brightness_template: '{"action":"adjustBrightness","params":{"brightness":{{ brightness }}},"requestId":"{{now().timestamp()}}"}'
+    state_value_template: "{{ value_json.power }}"
+    optimistic: false
+    qos: 1
+    unique_id: "iot_light_001"
+
+  # RGB灯带
+  - platform: mqtt
+    name: "客厅RGB灯带"
+    state_topic: "iot/device/rgb-light-001/status"
+    command_topic: "iot/device/rgb-light-001/control"
+    brightness_state_topic: "iot/device/rgb-light-001/data"
+    brightness_command_topic: "iot/device/rgb-light-001/control"
+    rgb_state_topic: "iot/device/rgb-light-001/data"
+    rgb_command_topic: "iot/device/rgb-light-001/control"
+    brightness_scale: 100
+    rgb_value_template: "{{ value_json.r }},{{ value_json.g }},{{ value_json.b }}"
+    payload_on: '{"action":"switch","params":{"power":"on"}}'
+    payload_off: '{"action":"switch","params":{"power":"off"}}'
+    set_brightness_template: '{"action":"adjustBrightness","params":{"brightness":{{ brightness }}}}'
+    set_rgb_template: '{"action":"setColor","params":{"color":"rgb({{ red }},{{ green }},{{ blue }})"}}'
+    optimistic: false
+    unique_id: "iot_rgb_light_001"
+
+# =============================================================================
+# 自动化规则 (Automations)
+# =============================================================================
+automation:
+  # ============== 温度控制 ==============
+  - alias: "温度过高自动开启风扇"
+    description: "当温度超过30°C时自动开启风扇"
+    trigger:
+      - platform: numeric_state
+        entity_id: sensor.客厅温度传感器
+        above: 30
+    condition:
+      - condition: state
+        entity_id: switch.卧室风扇
+        state: 'off'
+    action:
+      - service: switch.turn_on
+        target:
+          entity_id: switch.卧室风扇
+      - service: notify.mobile_app
+        data:
+          message: "温度过高({{ states('sensor.客厅温度传感器') }}°C)，已自动开启风扇"
+          title: "⚠️ 温度告警"
+
+  - alias: "温度恢复正常关闭风扇"
+    description: "当温度低于25°C时自动关闭风扇"
+    trigger:
+      - platform: numeric_state
+        entity_id: sensor.客厅温度传感器
+        below: 25
+    condition:
+      - condition: state
+        entity_id: switch.卧室风扇
+        state: 'on'
+    action:
+      - service: switch.turn_off
+        target:
+          entity_id: switch.卧室风扇
+      - service: notify.mobile_app
+        data:
+          message: "温度恢复正常({{ states('sensor.客厅温度传感器') }}°C)，已关闭风扇"
+          title: "✅ 温度正常"
+
+  # ============== 空气质量监控 ==============
+  - alias: "空气质量告警"
+    description: "PM2.5超标时发送通知"
+    trigger:
+      - platform: numeric_state
+        entity_id: sensor.室内pm25
+        above: 75  # 轻度污染
+    action:
+      - service: persistent_notification.create
+        data:
+          title: "🌫️ 空气质量告警"
+          message: "室内PM2.5达到 {{ states('sensor.室内pm25') }} μg/m³，建议开启空气净化器"
+      - service: notify.mobile_app
+        data:
+          message: "PM2.5: {{ states('sensor.室内pm25') }} μg/m³"
+          title: "空气质量告警"
+
+  # ============== 设备离线告警 ==============
+  - alias: "设备离线通知"
+    description: "当设备离线时发送通知"
+    trigger:
+      - platform: mqtt
+        topic: "iot/device/+/status"
+    condition:
+      - condition: template
+        value_template: "{{ trigger.payload_json.status == 'offline' }}"
+    action:
+      - service: persistent_notification.create
+        data:
+          title: "⚠️ 设备离线"
+          message: "设备 {{ trigger.topic.split('/')[2] }} 已离线，请检查设备状态"
+
+  # ============== 设备告警处理 ==============
+  - alias: "处理IoT平台告警"
+    description: "接收IoT平台的告警消息"
+    trigger:
+      - platform: mqtt
+        topic: "iot/device/+/alarm"
+    action:
+      - service: notify.mobile_app
+        data:
+          message: |
+            设备ID: {{ trigger.topic.split('/')[2] }}
+            告警类型: {{ trigger.payload_json.alarmType }}
+            告警级别: {{ trigger.payload_json.level }}
+            告警值: {{ trigger.payload_json.value }}
+          title: "⚠️ IoT设备告警"
+
+  # ============== 人体感应联动 ==============
+  - alias: "人体感应开灯"
+    description: "检测到人体移动时自动开灯"
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.客厅人体感应
+        to: 'on'
+    condition:
+      - condition: sun
+        after: sunset
+        before: sunrise
+      - condition: state
+        entity_id: light.客厅吸顶灯
+        state: 'off'
+    action:
+      - service: light.turn_on
+        target:
+          entity_id: light.客厅吸顶灯
+        data:
+          brightness_pct: 60
+
+  - alias: "人体感应关灯"
+    description: "5分钟无人移动自动关灯"
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.客厅人体感应
+        to: 'off'
+        for:
+          minutes: 5
+    action:
+      - service: light.turn_off
+        target:
+          entity_id: light.客厅吸顶灯
+
+  # ============== 场景触发 ==============
+  - alias: "触发IoT平台场景"
+    description: "通过Home Assistant触发IoT平台的场景"
+    trigger:
+      - platform: event
+        event_type: call_service
+        event_data:
+          domain: script
+          service: activate_iot_scene
+    action:
+      - service: mqtt.publish
+        data:
+          topic: "iot/scene/{{ trigger.event.data.service_data.scene_id }}/trigger"
+          payload: |
+            {
+              "sceneId": "{{ trigger.event.data.service_data.scene_id }}",
+              "userId": "homeassistant"
+            }
+
+# =============================================================================
+# 脚本 (Scripts)
+# =============================================================================
+script:
+  # 离家模式
+  leaving_home:
+    alias: "离家模式"
+    sequence:
+      # 关闭所有灯光
+      - service: light.turn_off
+        target:
+          entity_id: all
+      # 关闭所有开关
+      - service: switch.turn_off
+        target:
+          entity_id:
+            - switch.客厅智能插座
+            - switch.卧室风扇
+      # 触发IoT平台的离家场景
+      - service: mqtt.publish
+        data:
+          topic: "iot/scene/leaving-home/trigger"
+          payload: '{"sceneId":"leaving-home","userId":"homeassistant"}'
+      - service: notify.mobile_app
+        data:
+          message: "已启动离家模式，所有设备已关闭"
+          title: "🏠 离家模式"
+
+  # 回家模式
+  arriving_home:
+    alias: "回家模式"
+    sequence:
+      # 打开客厅灯光
+      - service: light.turn_on
+        target:
+          entity_id: light.客厅吸顶灯
+        data:
+          brightness_pct: 80
+      # 触发IoT平台的回家场景
+      - service: mqtt.publish
+        data:
+          topic: "iot/scene/arriving-home/trigger"
+          payload: '{"sceneId":"arriving-home","userId":"homeassistant"}'
+      - service: notify.mobile_app
+        data:
+          message: "欢迎回家！已开启客厅灯光"
+          title: "🏠 回家模式"
+
+  # 睡眠模式
+  sleep_mode:
+    alias: "睡眠模式"
+    sequence:
+      # 关闭所有灯光
+      - service: light.turn_off
+        target:
+          entity_id: all
+      # 开启夜灯（低亮度）
+      - service: light.turn_on
+        target:
+          entity_id: light.卧室床头灯
+        data:
+          brightness_pct: 10
+      # 触发IoT平台的睡眠场景
+      - service: mqtt.publish
+        data:
+          topic: "iot/scene/sleep-mode/trigger"
+          payload: '{"sceneId":"sleep-mode","userId":"homeassistant"}'
+
+# =============================================================================
+# 通知配置 (Notifications) - 可选
+# =============================================================================
+# 如果你想接收移动通知，需要安装Home Assistant移动应用
+# 参考: https://companion.home-assistant.io/
+
+# =============================================================================
+# Lovelace UI 卡片示例
+# =============================================================================
+# 将以下内容添加到你的 Lovelace dashboard 中
+
+# entities:
+#   - entity: sensor.客厅温度传感器
+#   - entity: sensor.客厅湿度传感器
+#   - entity: sensor.室内pm25
+#   - entity: switch.客厅智能插座
+#   - entity: switch.卧室风扇
+#   - entity: light.客厅吸顶灯
+# type: entities
+# title: IoT设备状态
+
+# =============================================================================
+# 使用说明
+# =============================================================================
+# 1. 将本文件内容复制到 /config/configuration.yaml
+# 2. 修改 mqtt.broker 为你的IoT平台服务器IP
+# 3. 修改设备ID (如 temp-sensor-001) 为实际设备ID
+# 4. 重启Home Assistant: 配置 → 服务器控制 → 重启
+# 5. 检查日志确认MQTT连接成功
+# 6. 在开发者工具 → 状态 中查看实体是否正常工作
